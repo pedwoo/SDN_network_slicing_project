@@ -47,7 +47,8 @@ client side of the project, specifying the which of the topologies to start.
 ryu-manager Controller.py
 
 # Terminal 2
-sudo python3 Topology.py <topology: [a, b, c]>
+# sudo python3 Client.py <topology: [a, b, c]>
+sudo python Client.py a
 ```
 
 Once the topology is started client side, it will send a GET request to a dedicated API endpoint in the controller to initialize the parameters connected to the specific
