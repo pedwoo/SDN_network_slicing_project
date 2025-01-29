@@ -69,15 +69,15 @@ The complete networks from a birds-eye view can be seen in the images below ([im
 <div style="display:flex; flex-direction:row; align-items:center; justify-content:center; gap:10px; min-width:max-content">
   <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:max-content">
     <p style="display:block; font-size:14px; font-weight:700">Topology A</p>
-    <img src="./img/topology_a.png" alt="Network Topology A" width="370" style="display:block; border-radius:10px"/>
+    <img src="./img/Topology_a.png" alt="Network Topology A" width="370" style="display:block; border-radius:10px"/>
   </div>
   <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:max-content">
     <p style="display:block; font-size:14px; font-weight:700">Topology B</p>
-    <img src="./img/topology_b.png" alt="Network Topology B" width="370" style="display:block; border-radius:10px"/>
+    <img src="./img/Topology_b.png" alt="Network Topology B" width="370" style="display:block; border-radius:10px"/>
   </div>
   <div style="display:flex; flex-direction:column; align-items:center; justify-content:center; min-width:max-content">
     <p style="display:block; font-size:14px; font-weight:700">Topology C</p>
-    <img src="./img/topology_c.png" alt="Network Topology C" width="370" style="display:block; border-radius:10px"/>
+    <img src="./img/Topology_c.png" alt="Network Topology C" width="370" style="display:block; border-radius:10px"/>
   </div>
 </div>
 
