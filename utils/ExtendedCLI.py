@@ -5,10 +5,27 @@ from webob import Response
 from json import dumps
 
 
-
 class ExtendedCLI(CLI):
     def __init__(self, mininet, *args, **kwargs):
         super().__init__(mininet, *args, **kwargs)
+
+    @staticmethod
+    def do_addroute(line):
+        args = line.split()
+        if len(args) != 3:
+            print("Usage: addroute <src_host_name> <dst_host_name> <bandwidth>")
+            return
+
+        try:
+            url = f"http://localhost:8080/add_route/{args[0]}/{args[1]}/{int(args[2])}"
+            response = requests.get(url)
+
+        except requests.exceptions.RequestException as e:
+            response = Response(status=404, body=dumps({'message': f"Failed to contact RYU controller: {e}"}))
+        except Exception as e:
+            response = Response(status=500, body=dumps({'message': f"Unexpected error: {e}"}))
+
+        print(f"STATUS: {response.status_code} | {response.json()['message']}")
 
     @staticmethod
     def do_addflow(line):

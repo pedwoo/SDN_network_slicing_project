@@ -12,10 +12,13 @@ import sys
 
 from topologies.Configurations import configurations
 
+from utils.Graph import host_mac_map, switch_dpid_map
 # Imports look unused, but are dynamically used in the code, do not remove
-from utils.Graph import links_map_a, host_mac_map_a, switch_dpid_map_a, leaf_switches_a
-from utils.Graph import links_map_b, host_mac_map_b, switch_dpid_map_b, leaf_switches_b
-from utils.Graph import links_map_c, host_mac_map_c, switch_dpid_map_c, leaf_switches_c
+from utils.Graph import graph_a, link_map_a
+from utils.Graph import graph_b, link_map_b
+from utils.Graph import graph_c, link_map_c
+
+from utils.Pathfinding import find_shortest_path
 
 NO_FLOWS = False
 """
@@ -43,16 +46,16 @@ class SlicingController(app_manager.RyuApp):
 
     def __init__(self, *args, **kwargs):
         super(SlicingController, self).__init__(*args, **kwargs)
-        self.topology = None
         self.configurations = None
 
         self.mac_to_port = {}
 
-        self.lm = None
-        self.hmm = None
-        self.sdm = None
+        self.hmm = host_mac_map
+        self.sdm = switch_dpid_map
+        self.graph = None
+        self.link_map = None
         self.datapaths = {}
-        self.leaf_switches = None
+        self.routes = {}
 
         self.api = kwargs['wsgi']
         self.api.register(SlicingControllerRest, {REST_API_NAME: self})
@@ -74,72 +77,17 @@ class SlicingController(app_manager.RyuApp):
 
         self.add_flow(datapath, 0, match, actions)
 
-    def remove_flows_from_switches(self, dpids=None):
-        """
-        Removes all flows from the specified switches.
-
-        Args: dpids (list or None): List of switch DPIDs to remove flows from. If None, removes flows from all switches.
-        """
-        target_dpids = dpids if dpids else self.datapaths.keys()
-
-        for dpid in target_dpids:
-            datapath = self.datapaths.get(dpid, None)
-            if datapath:
-                ofproto = datapath.ofproto
-                parser = datapath.ofproto_parser
-
-                # Create a flow mod message to delete all flows
-                flow_mod = parser.OFPFlowMod(
-                    datapath=datapath,
-                    command=ofproto.OFPFC_DELETE,  # Command to delete flows
-                    out_port=ofproto.OFPP_ANY,  # Apply to all ports
-                    out_group=ofproto.OFPG_ANY,  # Apply to all groups
-                    priority=0,  # Optional: match all priorities
-                    match=parser.OFPMatch()  # Match all flows
-                )
-                datapath.send_msg(flow_mod)
-                for port in range(1, 10):
-                    try:
-                        link = (dpid, str(port))
-                        self.lm[link]['usage'] = 0
-                    except KeyError as e:
-                        break
-
-                # self.logger.info(f"Removed all flows from switch {dpid}")
-            else:
-                self.logger.warning(f"Switch {dpid} not found or not connected.")
-
-        self.logger.info("All flows removed from switches")
-
-    @staticmethod
-    def _send_package(msg, datapath, in_port, actions):
-        data = None
-        ofproto = datapath.ofproto
-        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
-            data = msg.data
-
-        out = datapath.ofproto_parser.OFPPacketOut(
-            datapath=datapath,
-            buffer_id=msg.buffer_id,
-            in_port=in_port,
-            actions=actions,
-            data=data,
-        )
-        datapath.send_msg(out)
-
     def topology_init(self, topology):
         """
         Initialize the network topology based on the topology selected.
         """
-        self.topology = topology
+        topology = topology.lower()
         self.configurations = configurations[topology]
 
-        exec(f"self.lm = links_map_{topology}")
-        exec(f"self.hmm = host_mac_map_{topology}")
-        exec(f"self.sdm = switch_dpid_map_{topology}")
-        exec(f"self.leaf_switches = leaf_switches_{topology}")
+        exec(f"self.graph = graph_{topology}")
+        exec(f"self.link_map = link_map_{topology}")
 
-        if not self.lm or not self.hmm or not self.sdm or not self.leaf_switches:
+        if not self.graph or not self.link_map:
             self.logger.error(f"Topology {topology} could not be initialized correctly")
             sys.exit(1)
 
@@ -163,107 +111,49 @@ class SlicingController(app_manager.RyuApp):
         self.logger.info("--------------------")
         return True
 
+    def send_flow_stats_request(self, datapath):
+        ofproto = datapath.ofproto
+        parser = datapath.ofproto_parser
+
+        req = parser.OFPFlowStatsRequest(datapath, 0, ofproto.OFPTT_ALL)  # Request stats for all flows
+        datapath.send_msg(req)
+
+        self.logger.info(f"Flow stats request sent to switch {datapath.id}")
+
     def on_demand_add_flow(self, dpid, src_host, dst_host, port_in, port_out, priority, bandwidth, debug=True):
         """
-        Handle the installation of a bidirectional flow on a specific switch.
-
-        :param dpid: identifier of the switch
-        :param src_host: name of the source host
-        :param dst_host: name of the destination host
-        :param port_in: port where the flow will be installed
-        :param port_out: port to forward the messages to
-        :param priority: priority of the flow
-        :param bandwidth: bandwidth of the flow
-        :param debug: if True, log the flow installation request
-        
-        :return: 200 if the flow was successfully installed
-        :return: 404 if the switch was not found
-        :return: 401 if there is not enough capacity on the link
-        :return: 500 if there was an error
-        :return 501 if there was an unknown error 
+        Extend the standard `add_flow` method to manually add a flow to a specific switch.
         """
 
-        response = {"status": 501, "message": "Unknown error"}
-        if debug: self.logger.info(f"Flow installation requested on switch {dpid} between {src_host} and {dst_host} with {bandwidth} Mbps")
-        link = (str(dpid), str(port_out))
-        dpid = str(dpid)
-        if self.check_capacity(link, bandwidth):
-            if dpid in self.datapaths:
-                datapath = self.datapaths[dpid]
-                r = self.allocate_flow(datapath, link, src_host, dst_host, port_in, port_out, priority, bandwidth)
-                if r[0]:
-                    if debug: self.logger.info(f"Flow successfully allocated on switch {dpid} between {src_host} and {dst_host} with {bandwidth} Mbps")
-                    response['status'] = 200
-                    response['message'] = f"Flow successfully allocated on switch {dpid} between {src_host} and {dst_host} with {bandwidth} Mbps"
-                else:
-                    if debug: self.logger.error(r[1])
-                    response['status'] = 500
-                    response['message'] = r[1]
-            else:
-                if debug: self.logger.error(f"No datapath found for switch {dpid}")
-                response['status'] = 404
-                response['message'] = f"No datapath found for switch {dpid}"
+        response = {'status': 404, 'message': f"Switch {self.sdm[dpid]} not found"}
+
+        if dpid not in self.datapaths:
+            return response
+
+        next_hop = None
+        for link in self.link_map[self.sdm[dpid]]:
+            if self.link_map[self.sdm[dpid]][link][0] == port_out:
+                next_hop = link
+                break
+
+        if self.link_map[self.sdm[dpid]][next_hop][1]['usage'] +  bandwidth < self.link_map[self.sdm[dpid]][next_hop][1]['capacity']:
+            src_mac = self.hmm[src_host]
+            dst_mac = self.hmm[dst_host]
+
+            datapath = self.datapaths[dpid]
+            parser = datapath.ofproto_parser
+            match = parser.OFPMatch(in_port=port_in, eth_src=src_mac, eth_dst=dst_mac)
+            actions = [parser.OFPActionOutput(port_out)]
+
+            self.add_flow(datapath, priority, match, actions)
+
+            response['status'] = 200
+            response['message'] = f"Flow installed on switch {self.sdm[dpid]}: {match} -> {actions}"
         else:
             response['status'] = 401
-            response['message'] = f"Not enough capacity on the link: {link}"
+            response['message'] = f"Link capacity exceeded on switch {self.sdm[dpid]}, port {port_out}"
 
         return response
-
-    def check_capacity(self, link, bandwidth):
-        """
-        Check if there is enough capacity on the link to allocate the flow.
-        
-        :param link: (switch_dpid, port): (str, str)
-        :param bandwidth: bandwidth of the flow to be installed
-        
-        :return: True if the link is between a host and a switch
-        :return: True if there is enough capacity on the link
-        :return: False otherwise
-        """
-        if self.lm[link]['capacity'] == 424242:
-            return True
-        if self.lm[link]['capacity'] - self.lm[link]['usage'] >= bandwidth:
-            return True
-        return False
-
-    def allocate_flow(self, datapath, link, src_host, dst_host, port_in, port_out, priority, bandwidth):
-        """
-        Install a flow on a switch (coming from an on demand request).
-        
-        :param datapath: datapath of the switch where the flow will be installed
-        :param link: (switch_dpid, port): (str, str) identifier of the link to install the flow on
-        :param src_host: name of the source host
-        :param dst_host: name of the destination host
-        :param port_in: port where the flow will be installed
-        :param port_out: port to forward the messages to
-        :param priority: priority of the flow
-        :param bandwidth: bandwidth of the flow
-        
-        :return: [True, "clear"] if the flow was successfully installed
-        :return: [False, f"MAC address not found for source: {src_host}"] if the MAC address of the source host is not found
-        :return: [False, f"MAC address not found for destination: {dst_host}"] if the MAC address of the destination host is not found
-        """
-        return_message = "clear"
-        # Update link usage
-        if self.lm[link]['capacity'] != 424242:
-            self.lm[link]['usage'] += bandwidth
-
-        src_mac = self.hmm.get(src_host, None)
-        dst_mac = self.hmm.get(dst_host, None)
-
-        if not src_mac:
-            self.logger.error(f"MAC address not found for source: {src_host}, aborting flow installation")
-            return [False, f"MAC address not found for source: {src_host}"]
-        if not dst_mac:
-            self.logger.error(f"MAC address not found for destination: {dst_host}, aborting flow installation")
-            return [False, f"MAC address not found for destination: {dst_host}"]
-
-        parser = datapath.ofproto_parser
-        match = parser.OFPMatch(in_port=port_in, eth_dst=dst_mac, eth_src=src_mac)
-        actions = [parser.OFPActionOutput(port_out)]
-
-        self.add_flow(datapath, priority, match, actions)
-        return [True, return_message]
 
     @staticmethod
     def add_flow(datapath, priority, match, actions):
@@ -274,6 +164,62 @@ class SlicingController(app_manager.RyuApp):
 
         mod = parser.OFPFlowMod(datapath=datapath, priority=priority, match=match, instructions=inst)
         datapath.send_msg(mod)
+
+    def add_route(self, src_host, dst_host, bandwidth):
+        """
+        Given source host, destination host and bandwidth, find the shortest path between the two that supports flows for the given bandwdith, then install them (if possible)
+        :param src_host: source host name
+        :param dst_host: destination host name
+        :param bandwidth: bandwidth of the flows to be installed
+        :return: response object with status and message
+        """
+
+        response = {'status': 404, 'message': f"No suitable path between {src_host} and {dst_host}"}
+        path = find_shortest_path(self.graph, self.link_map, src_host, dst_host, bandwidth)
+
+        if not path:
+            return response
+
+        self.logger.info(f"Path between {src_host} and {dst_host} found: {path}")
+        if (src_host, dst_host) not in self.routes:
+            flows = list()
+            for i in range(1, (len(path) - 1)):
+                in_port = self.link_map[path[i]][path[i - 1]][0]
+                out_port = self.link_map[path[i]][path[i + 1]][0]
+                flows.append((path[i], src_host, dst_host, in_port, out_port, bandwidth))
+            self.routes[(src_host, dst_host)] = flows
+
+            self.logger.info(f"Route between {src_host} and {dst_host} allocated, proceeding with installation")
+
+            for flow in flows:
+                # Install each flow
+                src_mac = self.hmm[flow[1]]
+                dst_mac = self.hmm[flow[2]]
+
+                datapath = self.datapaths[self.sdm[flow[0]]]
+                parser = datapath.ofproto_parser
+                match = parser.OFPMatch(in_port=int(flow[3]), eth_src=src_mac, eth_dst=dst_mac)
+                actions = [parser.OFPActionOutput(int(flow[4]))]
+
+                self.add_flow(datapath, flow[5], match, actions)
+
+                # Update usage map
+                next_hop = None
+                for link in self.link_map[flow[0]]:
+                    if self.link_map[flow[0]][link][0] == flow[4]:
+                        next_hop = link
+                        break
+                self.link_map[flow[0]][next_hop][1]['usage'] += flow[5]
+
+                self.logger.info(f"Flow installed on switch {flow[0]}: {match} -> {actions}")
+
+            response['status'] = 200
+            response['message'] = f"Route between {src_host} and {dst_host} installed"
+        else:
+            response['status'] = 409
+            response['message'] = f"Route between {src_host} and {dst_host} already exists"
+
+        return response
 
     def remove_flow(self, dpid, src_host, dst_host, port_in, port_out, priority, bandwidth):
         response = {'status': 404, 'message': f'Datapath not found for switch {self.sdm[dpid]}'}  # Name of the switch
@@ -309,23 +255,65 @@ class SlicingController(app_manager.RyuApp):
             datapath.send_msg(flow_mod)
 
             # Update link usage
-            link = (dpid, port_out)
-            if self.lm[link]['capacity'] != 424242:
-                self.lm[link]['usage'] -= bandwidth
+            next_hop = None
+            for link in self.link_map[self.sdm[dpid]]:
+                if self.link_map[self.sdm[dpid]][link][0] == port_out:
+                    next_hop = link
+                    break
+            self.link_map[self.sdm[dpid]][next_hop][1]['usage'] -= bandwidth
 
             response['status'] = 200
             response['message'] = f"Flow removed from switch {dpid}"
 
         return response
 
-    def send_flow_stats_request(self, datapath):
+    def remove_flows_from_switches(self, dpids=None):
+        """
+        Removes all flows from the specified switches.
+
+        Args: dpids (list or None): List of switch DPIDs to remove flows from. If None, removes flows from all switches.
+        """
+        target_dpids = dpids if dpids else self.datapaths.keys()
+
+        for dpid in target_dpids:
+            datapath = self.datapaths[dpid]
+            ofproto = datapath.ofproto
+            parser = datapath.ofproto_parser
+
+            # Create a flow mod message to delete all flows
+            flow_mod = parser.OFPFlowMod(
+                datapath=datapath,
+                command=ofproto.OFPFC_DELETE,  # Command to delete flows
+                out_port=ofproto.OFPP_ANY,  # Apply to all ports
+                out_group=ofproto.OFPG_ANY,  # Apply to all groups
+                priority=0,  # Optional: match all priorities
+                match=parser.OFPMatch()  # Match all flows
+            )
+            datapath.send_msg(flow_mod)
+            switch_name = self.sdm[dpid]
+
+            for neighbor in self.link_map[switch_name]:
+                self.link_map[switch_name][neighbor][1]['usage'] = 0
+
+            # self.logger.info(f"Removed all flows from switch {dpid}")
+
+        self.logger.info("All flows removed from switches")
+
+    @staticmethod
+    def _send_package(msg, datapath, in_port, actions):
+        data = None
         ofproto = datapath.ofproto
-        parser = datapath.ofproto_parser
+        if msg.buffer_id == ofproto.OFP_NO_BUFFER:
+            data = msg.data
 
-        req = parser.OFPFlowStatsRequest(datapath, 0, ofproto.OFPTT_ALL)  # Request stats for all flows
-        datapath.send_msg(req)
-
-        self.logger.info(f"Flow stats request sent to switch {datapath.id}")
+        out = datapath.ofproto_parser.OFPPacketOut(
+            datapath=datapath,
+            buffer_id=msg.buffer_id,
+            in_port=in_port,
+            actions=actions,
+            data=data,
+        )
+        datapath.send_msg(out)
 
     """
     Handler function for the FlowStatsReply event.
@@ -463,6 +451,31 @@ class SlicingControllerRest(ControllerBase):
         self.slicing_app.topology_init(topo)
         return Response(status=200, body=dumps({"message": f"Topology {topo} initialized"}))
 
+    @route('slicing', '/default_configurator/{configuration}', methods=['GET'])
+    def _default_configurator(self, req, **kwargs):
+        configuration = int(kwargs['configuration'])
+        if configuration not in self.slicing_app.configurations.keys():
+            available_configurations = [i for i in self.slicing_app.configurations.keys()]
+            return Response(status=400, body=dumps({"message": f"Invalid configuration number, try: {', '.join(map(str, available_configurations))}"}))
+
+        res = self.slicing_app.default_configurator(configuration)
+        if not res:
+            return Response(status=500, body=dumps({"message": f"Failed to apply configuration {configuration}"}))
+
+        return Response(status=200, body=dumps({"message": f"Configuration {configuration} applied"}))
+
+    @route('slicing', '/flows/{switch_name}', methods=['GET'])
+    def _show_flows(self, req, **kwargs):
+        switch_name = kwargs['switch_name']
+        dpid = self.slicing_app.sdm.get(switch_name, None)
+        dp = self.slicing_app.datapaths.get(dpid, None)
+
+        if not dpid or not dp:
+            return Response(status=404, body=dumps({"message": f"Switch {switch_name} not found"}))
+
+        self.slicing_app.send_flow_stats_request(dp)
+        return Response(status=200, body=dumps({"message": f"Flow stats request sent to switch {switch_name}"}))
+
     @route('slicing', '/add_flow/{switch_name}/{src_host}/{dst_host}/{port_in}/{port_out}/{priority}/{bandwidth}', methods=['GET'])
     def _add_flow(self, req, **kwargs):
         switch_name = kwargs['switch_name']
@@ -478,6 +491,15 @@ class SlicingControllerRest(ControllerBase):
             return Response(status=404, body=dumps({"message": f"Switch {switch_name} not found"}))
 
         result = self.slicing_app.on_demand_add_flow(dpid, src_host, dst_host, port_in, port_out, priority, bandwidth)
+        return Response(status=result['status'], body=dumps({"message": result['message']}))
+
+    @route('slicing', '/add_route/{src_host}/{dst_host}/{bandwidth}', methods=['GET'])
+    def _add_route(self, req, **kwargs):
+        src_host = kwargs['src_host']
+        dst_host = kwargs['dst_host']
+        bandwidth = int(kwargs['bandwidth'])
+
+        result = self.slicing_app.add_route(src_host, dst_host, bandwidth)
         return Response(status=result['status'], body=dumps({"message": result['message']}))
 
     @route('slicing', '/remove_flow/{switch_name}/{src_host}/{dst_host}/{port_in}/{port_out}/{priority}/{bandwidth}', methods=['GET'])
@@ -508,28 +530,3 @@ class SlicingControllerRest(ControllerBase):
 
         self.slicing_app.remove_flows_from_switches([dpid])
         return Response(status=200, body=dumps({"message": f"Switch {self.slicing_app.sdm[dpid]} cleared"}))
-
-    @route('slicing', '/flows/{switch_name}', methods=['GET'])
-    def _show_flows(self, req, **kwargs):
-        switch_name = kwargs['switch_name']
-        dpid = self.slicing_app.sdm.get(switch_name, None)
-        dp = self.slicing_app.datapaths.get(dpid, None)
-
-        if not dpid or not dp:
-            return Response(status=404, body=dumps({"message": f"Switch {switch_name} not found"}))
-
-        self.slicing_app.send_flow_stats_request(dp)
-        return Response(status=200, body=dumps({"message": f"Flow stats request sent to switch {switch_name}"}))
-
-    @route('slicing', '/default_configurator/{configuration}', methods=['GET'])
-    def _default_configurator(self, req, **kwargs):
-        configuration = int(kwargs['configuration'])
-        if configuration not in self.slicing_app.configurations.keys():
-            available_configurations = [i for i in self.slicing_app.configurations.keys()]
-            return Response(status=400, body=dumps({"message": f"Invalid configuration number, try: {', '.join(map(str, available_configurations))}"}))
-
-        res = self.slicing_app.default_configurator(configuration)
-        if not res:
-            return Response(status=500, body=dumps({"message": f"Failed to apply configuration {configuration}"}))
-
-        return Response(status=200, body=dumps({"message": f"Configuration {configuration} applied"}))
