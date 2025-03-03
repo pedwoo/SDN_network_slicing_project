@@ -136,7 +136,7 @@ class SlicingController(app_manager.RyuApp):
                 next_hop = link
                 break
 
-        if self.link_map[self.sdm[dpid]][next_hop][1]['usage'] +  bandwidth < self.link_map[self.sdm[dpid]][next_hop][1]['capacity']:
+        if self.link_map[self.sdm[dpid]][next_hop][1]['usage'] + bandwidth <= self.link_map[self.sdm[dpid]][next_hop][1]['capacity']:
             src_mac = self.hmm[src_host]
             dst_mac = self.hmm[dst_host]
 
@@ -146,6 +146,9 @@ class SlicingController(app_manager.RyuApp):
             actions = [parser.OFPActionOutput(port_out)]
 
             self.add_flow(datapath, priority, match, actions)
+
+            # Update link usage
+            self.link_map[self.sdm[dpid]][next_hop][1]['usage'] += bandwidth
 
             response['status'] = 200
             response['message'] = f"Flow installed on switch {self.sdm[dpid]}: {match} -> {actions}"
