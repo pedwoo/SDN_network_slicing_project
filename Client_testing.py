@@ -88,14 +88,14 @@ if __name__ == "__main__":
             h5 = net.get("h5")
 
             # Start the server
-            server.cmd('iperf -s -u -p 1001 > ./test_stats/server_a.txt &')
-            server.cmd('iperf -s -u -p 1002 > ./test_stats/server_b.txt &')
-            server.cmd('iperf -s -u -p 1003 > ./test_stats/server_c.txt &')
+            server.cmd('iperf -s -u -p 1001 > ./test_stats/topo_b/server_a.txt &')
+            server.cmd('iperf -s -u -p 1002 > ./test_stats/topo_b/server_b.txt &')
+            server.cmd('iperf -s -u -p 1003 > ./test_stats/topo_b/server_c.txt &')
             print("iperf server started on h2")
 
-            h1.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 12m -p 1001 > ./test_stats/h1_stats.txt &')
-            h3.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 7m -p 1002 > ./test_stats/h3_stats.txt &')
-            h5.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 1m -p 1003 > ./test_stats/h5_stats.txt &')
+            h1.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 12m -p 1001 > ./test_stats/topo_b/h1_stats.txt &')
+            h3.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 7m -p 1002 > ./test_stats/topo_b/h3_stats.txt &')
+            h5.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 1m -p 1003 > ./test_stats/topo_b/h5_stats.txt &')
 
             print("iperf client executed")
 
