@@ -68,7 +68,7 @@ if __name__ == "__main__":
         if topology_name == 'b':
 
             # Requests are done without try except as they are not expected to fail
-            # Instal flows between h2 and h1 12Mbps both ways
+            # Install flows between h2 and h1 12Mbps both ways
             requests.get("http://localhost:8080/add_route/h1/h2/12")
             requests.get("http://localhost:8080/add_route/h2/h1/12")
 
@@ -82,22 +82,24 @@ if __name__ == "__main__":
 
             time.sleep(5)
             # Get the hosts
-            server = net.get("h2") # h2 is the receiver
+            server = net.get("h2")
             h1 = net.get("h1")
             h3 = net.get("h3")
             h5 = net.get("h5")
 
-            # Start the server
-            server.cmd('iperf -s -u -p 1001 > ./test_stats/topo_b/server_a.txt &')
-            server.cmd('iperf -s -u -p 1002 > ./test_stats/topo_b/server_b.txt &')
-            server.cmd('iperf -s -u -p 1003 > ./test_stats/topo_b/server_c.txt &')
-            print("iperf server started on h2")
+            # Start the servers
+            server.cmd('iperf -s -u -i 1 -p 1001 > ./test_stats/topo_b/server_a.txt &')
+            server.cmd('iperf -s -u -i 1 -p 1002 > ./test_stats/topo_b/server_b.txt &')
+            server.cmd('iperf -s -u -i 1 -p 1003 > ./test_stats/topo_b/server_c.txt &')
+            print("iperf servers started")
 
-            h1.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 12m -p 1001 > ./test_stats/topo_b/h1_stats.txt &')
-            h3.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 7m -p 1002 > ./test_stats/topo_b/h3_stats.txt &')
-            h5.cmd('iperf -c 10.0.0.2 -u -t 20 -i 1 -b 1m -p 1003 > ./test_stats/topo_b/h5_stats.txt &')
+            h1.cmd('iperf -c 10.0.0.2 -u -t 10 -i 1 -b 12m -p 1001 > ./test_stats/topo_b/h1_stats.txt &')
+            h3.cmd('iperf -c 10.0.0.2 -u -t 10 -i 1 -b 7m -p 1002 > ./test_stats/topo_b/h3_stats.txt &')
+            h5.cmd('iperf -c 10.0.0.2 -u -t 10 -i 1 -b 1m -p 1003 > ./test_stats/topo_b/h5_stats.txt &')
+            print("iperf clients executed")
 
-            print("iperf client executed")
+        elif topology_name == 'c':
+            pass
 
         ExtendedCLI(net)
         net.stop()

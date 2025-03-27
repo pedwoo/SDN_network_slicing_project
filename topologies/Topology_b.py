@@ -6,10 +6,10 @@ class TopologyB(Topo):
         Topo.__init__(self)
 
         # Templates for the different links, based on slices
-        link_config_a = dict(bw=5)
-        link_config_b = dict(bw=7)
-        link_config_c = dict(bw=10)
-        link_config_d = dict(bw=20)
+        link_config_a = dict(bw=5, max_queue_size=10)
+        link_config_b = dict(bw=7, max_queue_size=14)
+        link_config_c = dict(bw=10, max_queue_size=20)
+        link_config_d = dict(bw=20, max_queue_size=40)
         link_config_z = dict()
 
         # Create 9 switch nodes

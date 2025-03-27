@@ -1,0 +1,21 @@
+------------------------------------------------------------
+Client connecting to 10.0.0.2, UDP port 1003
+Sending 1470 byte datagrams, IPG target: 588.00 us (kalman adjust)
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 10.0.0.5 port 40826 connected with 10.0.0.2 port 1003
+[ ID] Interval       Transfer     Bandwidth
+[  3]  0.0- 1.0 sec  2.38 MBytes  20.0 Mbits/sec
+[  3]  1.0- 2.0 sec  2.39 MBytes  20.0 Mbits/sec
+[  3]  2.0- 3.0 sec  2.39 MBytes  20.0 Mbits/sec
+[  3]  3.0- 4.0 sec  2.37 MBytes  19.9 Mbits/sec
+[  3]  4.0- 5.0 sec  2.40 MBytes  20.1 Mbits/sec
+[  3]  5.0- 6.0 sec  2.31 MBytes  19.4 Mbits/sec
+[  3]  6.0- 7.0 sec  2.44 MBytes  20.5 Mbits/sec
+[  3]  7.0- 8.0 sec  2.40 MBytes  20.1 Mbits/sec
+[  3]  8.0- 9.0 sec  2.38 MBytes  19.9 Mbits/sec
+[  3]  0.0-10.0 sec  23.8 MBytes  20.0 Mbits/sec
+[  3] Sent 17008 datagrams
+[  3] Server Report:
+[  3]  0.0-10.0 sec  5.66 MBytes  4.73 Mbits/sec   0.000 ms 12971/17008 (0%)
+[  3] 0.00-10.04 sec  207 datagrams received out-of-order

@@ -9,7 +9,7 @@ class TopologyA(Topo):
         link_config_a = dict(bw=5)
         link_config_b = dict(bw=7)
         link_config_c = dict(bw=10)
-        link_config_d = dict(bw=2)
+        link_config_d = dict(bw=20)
         link_config_z = dict()
 
         # Create 9 switch nodes
