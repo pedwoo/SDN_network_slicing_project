@@ -2,21 +2,21 @@
 
 ## Table of Contents
 
-- [Introduction](#introduction)
-- [Installation](#installation)
-- [Repository structure](#repository-structure)
-- [Network Topology](#network-topology)
-- [Slicing controller commands](#slicing-controller-commands)
-    - [Add a flow](#add-a-flow)
-    - [Add a route](#add-a-route)
-    - [Delete a flow](#delete-a-flow)
-    - [Clear a switch](#clear-a-switch)
-    - [Show all flows](#show-all-flows)
-    - [Default configurator](#default-configurator)
-- [Testing](#testing)
-    - [Ping](#ping)
-    - [Iperf](#iperf)
-- [Testing setup example](#testing-setup-example)
+-   [Introduction](#introduction)
+-   [Installation](#installation)
+-   [Repository structure](#repository-structure)
+-   [Network Topology](#network-topology)
+-   [Slicing controller commands](#slicing-controller-commands)
+    -   [Add a flow](#add-a-flow)
+    -   [Add a route](#add-a-route)
+    -   [Delete a flow](#delete-a-flow)
+    -   [Clear a switch](#clear-a-switch)
+    -   [Show all flows](#show-all-flows)
+    -   [Default configurator](#default-configurator)
+-   [Testing](#testing)
+    -   [Ping](#ping)
+    -   [Iperf](#iperf)
+-   [Testing setup example](#testing-setup-example)
 
 ## Introduction
 
@@ -60,16 +60,16 @@ instantiating the network topology.
 
 There are three main files that compose the project:
 
-- [Topology.py](topologies/Topology_a.py): Defines and runs the network topology, including the connection to the controller
-- [ExtendedCLI.py](utils/ExtendedCLI.py): Extends the default mininet CLI instance to implement custom commands
-- [Controller.py](Controller.py): Includes both the controller logic and the API endpoints
+-   [Topology.py](topologies/Topology_a.py): Defines and runs the network topology, including the connection to the controller
+-   [ExtendedCLI.py](utils/ExtendedCLI.py): Extends the default mininet CLI instance to implement custom commands
+-   [Controller.py](Controller.py): Includes both the controller logic and the API endpoints
 
 ## Network Topology
 
 The complete networks from a birds-eye view can be seen in the images below ([image folder here](./img)).
 
 | Topology A                          | Topology B                          | Topology C                          |
-|-------------------------------------|-------------------------------------|-------------------------------------|
+| ----------------------------------- | ----------------------------------- | ----------------------------------- |
 | ![Topology A](./img/Topology_a.png) | ![Topology B](./img/Topology_b.png) | ![Topology C](./img/Topology_c.png) |
 
 It is to be noted that the yellow links' capacity is labeled as "don't matter" since it is theoretically infinite, as they are the links between just the hosts and their
@@ -87,21 +87,21 @@ mininet> addflow s1 h1 h2 4 1 1 1
 ```
 
 This command sends a GET request to the exposed API endpoint of the controller.  
-The provided example will install a flow (with priority 1 and bandwidth of 1Kbps) on s1 that
+The provided example will install a flow (with priority 1 and bandwidth of 1Mbps) on s1 that
 will forward the packets incoming on port 4 (h1) out to port 1 (s2). It is to be
-noted that in order to have a two-way connection between the hosts, two flow rules must be installed. Additionally, if we require a two-way 4Kbps connection, we need a link
-with a bandwidth of at least 8Kbps.  
+noted that in order to have a two-way connection between the hosts, two flow rules must be installed. Additionally, if we require a two-way 4Mbps connection, we need a link
+with a bandwidth of at least 8Mbps.  
 The reponse of the endpoint is defined as follows:
 
-- _Success_:
-    - 200: Flow successfully allocated on switch {dpid} between {src_host} and {dst_host} with {bandwidth} Kbps
-- _Error_:
-    - 401: Not enough capacity on the link
-    - 404: No datapath found for switch {dpid}
-    - 404: Failed to cotact RYU controller
-    - 500: MAC address not found for source: {src_host}
-    - 500: MAC address not found for destination: {dst_host}
-    - 500: Unexpected error {error}
+-   _Success_:
+    -   200: Flow successfully allocated on switch {dpid} between {src_host} and {dst_host} with {bandwidth} Mbps
+-   _Error_:
+    -   401: Not enough capacity on the link
+    -   404: No datapath found for switch {dpid}
+    -   404: Failed to cotact RYU controller
+    -   500: MAC address not found for source: {src_host}
+    -   500: MAC address not found for destination: {dst_host}
+    -   500: Unexpected error {error}
 
 ### **Add a route**
 
@@ -111,19 +111,19 @@ mininet> addroute h1 h2 5
 ```
 
 This command sends a GET request to the exposed API endpoint of the controller.  
-The provided example will install flows in the network to allow the communication between h1 and h2 with a bandwidth of 5Kbps. The controller will calculate the shortest path. 
+The provided example will install flows in the network to allow the communication between h1 and h2 with a bandwidth of 5Mbps. The controller will calculate the shortest path.
 The priority is automatically set to 1.  
 The output of the command is defined as follows:
 
-- _Success_:
-    - 200: Route successfully allocated between {src_host} and {dst_host} with {bandwidth} Kbps
-- _Error_:
-    - 401: Not enough capacity on the link
-    - 404: MAC address not found for source: {src_host}
-    - 404: MAC address not found for destination: {dst_host}
-    - 404: Failed to cotact RYU controller
-    - 409: route already exists
-    - 500: Unexpected error {error}
+-   _Success_:
+    -   200: Route successfully allocated between {src_host} and {dst_host} with {bandwidth} Mbps
+-   _Error_:
+    -   401: Not enough capacity on the link
+    -   404: MAC address not found for source: {src_host}
+    -   404: MAC address not found for destination: {dst_host}
+    -   404: Failed to cotact RYU controller
+    -   409: route already exists
+    -   500: Unexpected error {error}
 
 ### **Delete a flow**
 
@@ -136,14 +136,14 @@ This command sends a GET request to the exposed API endpoint of the controller, 
 removed.  
 The output of the command is defined as follows:
 
-- _Success_:
-    - 200: Flow removed from switch {dpid}
-- _Error_:
-    - 404: No datapath found for switch {dpid}
-    - 404: MAC address not found for source: {src_host}
-    - 404: MAC address not found for destination: {dst_host}
-    - 404: Failed to cotact RYU controller
-    - 500: Unexpected error {error}
+-   _Success_:
+    -   200: Flow removed from switch {dpid}
+-   _Error_:
+    -   404: No datapath found for switch {dpid}
+    -   404: MAC address not found for source: {src_host}
+    -   404: MAC address not found for destination: {dst_host}
+    -   404: Failed to cotact RYU controller
+    -   500: Unexpected error {error}
 
 ### **Clear a switch**
 
@@ -156,12 +156,12 @@ This command sends a GET request to the exposed API endpoint of the controller, 
 specified switch.  
 The response of the endpoint is defined as follows:
 
-- _Success_:
-    - 200: Switch {dpid} cleared
-- _Error_:
-    - 404: No datapath found for switch {dpid}
-    - 404: Failed to cotact RYU controller
-    - 500: Unexpected error {error}
+-   _Success_:
+    -   200: Switch {dpid} cleared
+-   _Error_:
+    -   404: No datapath found for switch {dpid}
+    -   404: Failed to cotact RYU controller
+    -   500: Unexpected error {error}
 
 ### **Show all flows**
 
@@ -174,12 +174,12 @@ This command sends a GET request to the exposed API endpoint of the controller, 
 flows is only shown on the controller's console.  
 The response of the endpoint is defined as follows:
 
-- _Success_:
-    - 200: Flow stat request sent to switch {dpid}
-- _Error_:
-    - 404: No datapath found for switch {dpid}
-    - 404: Failed to cotact RYU controller
-    - 500: Unexpected error {error}
+-   _Success_:
+    -   200: Flow stat request sent to switch {dpid}
+-   _Error_:
+    -   404: No datapath found for switch {dpid}
+    -   404: Failed to cotact RYU controller
+    -   500: Unexpected error {error}
 
 ### **Default configurator**
 
@@ -192,50 +192,50 @@ This command sends a GET request to the exposed API endpoint of the controller t
 that it will also clear any pre-existing flow rules on any switch.  
 Depending on the topology chosen, there are different configurations:
 
-- **Topology A**:
-    - _[0]_: All hosts are connected to all other hosts on 2Kbps bidirectional (4Kbps total) links.
-    - _[1]_: All hosta are connected to all other hosts with links of the maximum capacity allowd by the network.
-    - _[2]_:
-        - h3 and h4 are connected on a 4Kbps bidirectional (8Kbps total) link going through s2
-        - h3 and h2 are connected on a 1Kbps bidirectional (2Kbps total) link.
-    - _[3]_:
-        - h1 and h3 are connected on a 5Kbps bidirectional (10Kbps total) link
-        - h2 and h1 are connected on a 5Kbps bidirectional (10Kbps totla) link going through s3.
-- **Topology B**:
-    - _[0]_: Only configured flows on switches that have a host connected to them, based on the shortest path between the hosts. All links are 1Kbps bidirectional (2Kbps total)
-      links
-    - _[1]_:
-        - h1 and h2 are connected on a 2Kbps bidirectional (4Kbps total) link through s2, s4
-        - h1 and h4 are connected on a 1Kbps bidirectional (2Kbps total) link through s9, s8
-        - h2 and h3 are connected on a 8Kbps bidirectional (16Kbps total) link through s4
-        - h3 and h4 are connected on a 2Kbps bidirectional (4Kbps total) link through s1
-        - h4 and h5 are connected on a 3Kbps bidirectional (6Kbps total) link through s8
-- **Topology C**:
-    - _[0]_: Only configured flows on switches that have a host connected to them, based on the shortest path between the hosts. All links are 1Kbps bidirectional (2Kbps total)
-      links
-    - _[1]_:
-        - h1 and h6 are connected on a 1Kbps bidirectional (2Kbps total) link through s10, s12
-        - h2 and h5 are connected on a 1Kbps bidirectional (2Kbps total) link through s1, s10, s9, s8
-        - h2 and h7 are connected on a 2Kbps bidirectional (4Kbps total) link through s11, s10, s12
-        - h3 and h4 are connected on a 2Kbps bidirectional (4Kbps total) link through s11
-        - h3 and h7 are connected on a 1Kbps bidirectional (2Kbps total) link through s11, s10
-        - h4 and h5 are connected on a 1Kbps bidirectional (2Kbps total) link
-        - h4 and h6 are connected on a 2Kbps bidirectional (4Kbps total) link through s8, s5
-    - _[2]_:
-        - h2 and h5 are connected on a 3Kbps bidirectional (6Kbps total) link through s1, s10, s9, s8, s5
-        - h3 and h6 are connected on a 1Kbps bidirectional (2Kbps total) link through s11, s10, s12
-        - h4 and h7 are connected on a 2Kbps bidirectional (4Kbps total) link through s11, s10
-        - h4 and h5 are connected on a 3Kbps bidirectional (6Kbps total) link
+-   **Topology A**:
+    -   _[0]_: All hosts are connected to all other hosts on 2Mbps bidirectional (4Mbps total) links.
+    -   _[1]_: All hosta are connected to all other hosts with links of the maximum capacity allowd by the network.
+    -   _[2]_:
+        -   h3 and h4 are connected on a 4Mbps bidirectional (8Mbps total) link going through s2
+        -   h3 and h2 are connected on a 1Mbps bidirectional (2Mbps total) link.
+    -   _[3]_:
+        -   h1 and h3 are connected on a 5Mbps bidirectional (10Mbps total) link
+        -   h2 and h1 are connected on a 5Mbps bidirectional (10Mbps totla) link going through s3.
+-   **Topology B**:
+    -   _[0]_: Only configured flows on switches that have a host connected to them, based on the shortest path between the hosts. All links are 1Mbps bidirectional (2Mbps total)
+        links
+    -   _[1]_:
+        -   h1 and h2 are connected on a 2Mbps bidirectional (4Mbps total) link through s2, s4
+        -   h1 and h4 are connected on a 1Mbps bidirectional (2Mbps total) link through s9, s8
+        -   h2 and h3 are connected on a 8Mbps bidirectional (16Mbps total) link through s4
+        -   h3 and h4 are connected on a 2Mbps bidirectional (4Mbps total) link through s1
+        -   h4 and h5 are connected on a 3Mbps bidirectional (6Mbps total) link through s8
+-   **Topology C**:
+    -   _[0]_: Only configured flows on switches that have a host connected to them, based on the shortest path between the hosts. All links are 1Mbps bidirectional (2Mbps total)
+        links
+    -   _[1]_:
+        -   h1 and h6 are connected on a 1Mbps bidirectional (2Mbps total) link through s10, s12
+        -   h2 and h5 are connected on a 1Mbps bidirectional (2Mbps total) link through s1, s10, s9, s8
+        -   h2 and h7 are connected on a 2Mbps bidirectional (4Mbps total) link through s11, s10, s12
+        -   h3 and h4 are connected on a 2Mbps bidirectional (4Mbps total) link through s11
+        -   h3 and h7 are connected on a 1Mbps bidirectional (2Mbps total) link through s11, s10
+        -   h4 and h5 are connected on a 1Mbps bidirectional (2Mbps total) link
+        -   h4 and h6 are connected on a 2Mbps bidirectional (4Mbps total) link through s8, s5
+    -   _[2]_:
+        -   h2 and h5 are connected on a 3Mbps bidirectional (6Mbps total) link through s1, s10, s9, s8, s5
+        -   h3 and h6 are connected on a 1Mbps bidirectional (2Mbps total) link through s11, s10, s12
+        -   h4 and h7 are connected on a 2Mbps bidirectional (4Mbps total) link through s11, s10
+        -   h4 and h5 are connected on a 3Mbps bidirectional (6Mbps total) link
 
 The response of the endpoint is defined as follows:
 
-- _Success_:
-    - 200: Configuration {config_number} successfully installed
-- _Error_:
-    - 400: Invalid configuration number
-    - 404: Failed to cotact RYU controller
-    - 500: Failed to apply configuration {config_number}
-    - 500: Unexpected error {error}
+-   _Success_:
+    -   200: Configuration {config_number} successfully installed
+-   _Error_:
+    -   400: Invalid configuration number
+    -   404: Failed to cotact RYU controller
+    -   500: Failed to apply configuration {config_number}
+    -   500: Unexpected error {error}
 
 ## Testing
 
@@ -286,7 +286,7 @@ TCP window size: 85.3 KByte (default)
 ```
 
 Note that the second command can be altered by using the `-t` flag to set the time of the test, or the `-i` flag to set the interval between reports. Bandwidths can also be set
-manually for both the client and server using the `-b` flag (e.g. `-b 10M` for 10Kbps bandwidth) in the respective commands.
+manually for both the client and server using the `-b` flag (e.g. `-b 10M` for 10Mbps bandwidth) in the respective commands.
 
 ### Testing setup example
 
@@ -297,13 +297,13 @@ configuration.
 
 ```bash
 mininet> addflow s1 h1 h2 4 1 1 1 # Add flow on s1 from h1 to s2
-STATUS: 200 | Flow successfully allocated on switch 1 between h1 and h2 with 1 Kbps
+STATUS: 200 | Flow successfully allocated on switch 1 between h1 and h2 with 1 Mbps
 mininet> addflow s1 h2 h1 1 4 1 1 # Add flow on s1 from s2 to h1
-STATUS: 200 | Flow successfully allocated on switch 1 between h2 and h1 with 1 Kbps
+STATUS: 200 | Flow successfully allocated on switch 1 between h2 and h1 with 1 Mbps
 mininet> addflow s2 h1 h2 1 4 1 1 # Add flow on s2 from s1 to h2
-STATUS: 200 | Flow successfully allocated on switch 2 between h1 and h2 with 1 Kbps
+STATUS: 200 | Flow successfully allocated on switch 2 between h1 and h2 with 1 Mbps
 mininet> addflow s2 h2 h1 4 1 1 1 # Add flow on s2 from h2 to s1
-STATUS: 200 | Flow successfully allocated on switch 2 between h2 and h1 with 1 Kbps
+STATUS: 200 | Flow successfully allocated on switch 2 between h2 and h1 with 1 Mbps
 ```
 
 #### Ping setup
@@ -333,8 +333,8 @@ TCP window size: 85.3 KByte (default)
 ```
 
 ```bash
-mininet> h1 iperf -s -b 1M &   # Start iperf server on h1 with 1Kbps bandwidth
-mininet> h2 iperf -c h1 -b 1M  # Start iperf client on h2 with 1Kbps bandwidth
+mininet> h1 iperf -s -b 1M &   # Start iperf server on h1 with 1Mbps bandwidth
+mininet> h2 iperf -c h1 -b 1M  # Start iperf client on h2 with 1Mbps bandwidth
 ------------------------------------------------------------
 Client connecting to 10.0.0.1, TCP port 5001
 TCP window size: 85.3 KByte (default)
