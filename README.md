@@ -77,7 +77,7 @@ respective switches.
 
 ## Slicing controller commands
 
-There are three custom commands that can be used directly from the mininet CLI. Their usage is as follows:
+Custom commands have been integrated so that they can be used directly from the mininet CLI. Their usage is as follows:
 
 ### **Add a flow**
 

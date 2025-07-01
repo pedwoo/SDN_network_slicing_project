@@ -1,0 +1,22 @@
+------------------------------------------------------------
+Server listening on UDP port 1003
+Receiving 1470 byte datagrams
+UDP buffer size:  208 KByte (default)
+------------------------------------------------------------
+[  3] local 10.0.0.2 port 1003 connected with 10.0.0.5 port 33842
+[ ID] Interval       Transfer     Bandwidth        Jitter   Lost/Total Datagrams
+[  3]  0.0- 1.0 sec   123 KBytes  1.01 Mbits/sec   0.579 ms    0/   86 (0%)
+[  3]  1.0- 2.0 sec   122 KBytes  1000 Kbits/sec   0.562 ms    0/   85 (0%)
+[  3]  2.0- 3.0 sec   122 KBytes  1000 Kbits/sec   0.843 ms    0/   85 (0%)
+[  3]  3.0- 4.0 sec   122 KBytes  1000 Kbits/sec   0.643 ms    0/   85 (0%)
+[  3]  4.0- 5.0 sec   122 KBytes  1000 Kbits/sec   0.678 ms    0/   85 (0%)
+[  3]  5.0- 6.0 sec   122 KBytes  1000 Kbits/sec   0.722 ms    0/   85 (0%)
+[  3]  6.0- 7.0 sec   121 KBytes   988 Kbits/sec   1.295 ms    1/   85 (1.2%)
+[  3] 6.00-7.00 sec  2 datagrams received out-of-order
+[  3]  7.0- 8.0 sec   119 KBytes   976 Kbits/sec   2.574 ms    2/   85 (2.4%)
+[  3] 7.00-8.00 sec  2 datagrams received out-of-order
+[  3]  8.0- 9.0 sec   122 KBytes  1000 Kbits/sec   0.748 ms    0/   85 (0%)
+[  3]  9.0-10.0 sec   122 KBytes  1000 Kbits/sec   0.957 ms    0/   85 (0%)
+[  3] 9.00-10.00 sec  3 datagrams received out-of-order
+[  3]  0.0-10.0 sec  1.19 MBytes   997 Kbits/sec   0.957 ms    3/  851 (0.35%)
+[  3] 0.00-10.00 sec  7 datagrams received out-of-order
